@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Tracker LIFF App</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #cc1e0f;
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #e9e2d0;
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #e9e2d0;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e9e2d0;
+            border-radius: 10px;
+            background: rgba(233, 226, 208, 0.2);
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn:hover {
+            background: rgba(233, 226, 208, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .camera-section {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border: 2px solid #e9e2d0;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .food-info {
+            background: rgba(233, 226, 208, 0.1);
+            border: 1px solid #e9e2d0;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .food-name {
+            font-size: 22px;
+            font-weight: bold;
+            color: #e9e2d0;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .nutrition-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .nutrition-item {
+            background: rgba(204, 30, 15, 0.3);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e9e2d0;
+        }
+
+        .nutrition-label {
+            font-size: 12px;
+            color: #e9e2d0;
+            margin-bottom: 5px;
+        }
+
+        .nutrition-value {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .tip-section {
+            background: rgba(233, 226, 208, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border: 1px solid #e9e2d0;
+        }
+
+        .tip-label {
+            font-size: 14px;
+            color: #e9e2d0;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .tip-text {
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .question-section {
+            text-align: center;
+            margin: 30px 0 20px 0;
+            padding: 20px;
+            background: rgba(233, 226, 208, 0.1);
+            border-radius: 10px;
+            border: 1px solid #e9e2d0;
+        }
+
+        .question-text {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #e9e2d0;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-yes {
+            background: rgba(76, 175, 80, 0.3);
+            border-color: #4CAF50;
+        }
+
+        .btn-no {
+            background: rgba(244, 67, 54, 0.3);
+            border-color: #f44336;
+        }
+
+        .success-message {
+            text-align: center;
+            padding: 30px;
+            background: rgba(76, 175, 80, 0.2);
+            border: 2px solid #4CAF50;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+
+        .success-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #e9e2d0;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .error-message {
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid #f44336;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .image-preview-container {
+            position: relative;
+            display: inline-block;
+            margin: 20px 0;
+        }
+
+        .image-quality-note {
+            background: rgba(233, 226, 208, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-size: 14px;
+            color: #e9e2d0;
+            text-align: center;
+            border: 1px solid #e9e2d0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- หน้าแรก -->
+        <div id="homeScreen">
+            <div class="header">
+                <h1>🍽️ Food Tracker</h1>
+                <p>ติดตามการกินของคุณ</p>
+                <div id="connectionStatus" style="font-size: 12px; margin-top: 10px; padding: 8px; background: rgba(233, 226, 208, 0.2); border-radius: 5px;">
+                    🔄 กำลังตรวจสอบการเชื่อมต่อ...
+                </div>
+            </div>
+            <button class="btn" onclick="openCamera()">
+                📸 ถ่ายรูปอาหาร
+            </button>
+        </div>
+
+        <!-- หน้าถ่ายรูป -->
+        <div id="cameraScreen" class="hidden">
+            <div class="header">
+                <h1>📸 เลือกรูปอาหาร</h1>
+                <p>เลือกวิธีการเพิ่มรูป</p>
+            </div>
+            <div class="camera-section">
+                <input type="file" id="cameraInput" class="file-input" accept="image/*" capture="camera" onchange="handleImageCapture(event)">
+                <button class="btn" onclick="document.getElementById('cameraInput').click()">
+                    📷 ถ่ายรูปด้วยกล้อง
+                </button>
+                <input type="file" id="galleryInput" class="file-input" accept="image/*" onchange="handleImageCapture(event)">
+                <button class="btn" onclick="document.getElementById('galleryInput').click()">
+                    🖼️ เลือกจากแกลเลอรี่
+                </button>
+                <button class="btn" onclick="goHome()">
+                    ← กลับหน้าแรก
+                </button>
+            </div>
+        </div>
+
+        <!-- หน้ายืนยันรูป -->
+        <div id="confirmScreen" class="hidden">
+            <div class="header">
+                <h1>🔍 ตรวจสอบรูป</h1>
+                <p>กรุณาตรวจสอบรูปก่อนส่ง</p>
+            </div>
+            <div class="camera-section">
+                <div class="image-preview-container">
+                    <img id="confirmImage" class="preview-image" alt="Confirm Image">
+                </div>
+                <div class="image-quality-note">
+                    💡 ตรวจสอบว่ารูปชัดเจนและเห็นอาหารได้ดี
+                </div>
+                <div class="question-section">
+                    <div class="question-text">รูปนี้ถูกต้องไหม?</div>
+                    <div class="action-buttons">
+                        <button class="btn btn-yes" onclick="confirmAndSubmit()">
+                            ✅ ใช่ ส่งเลย
+                        </button>
+                        <button class="btn btn-no" onclick="retakePhoto()">
+                            📷 เลือกใหม่
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- หน้าแสดงผลลัพธ์ -->
+        <div id="resultScreen" class="hidden">
+            <div class="header">
+                <h1>📊 ข้อมูลอาหาร</h1>
+            </div>
+            <div id="foodInfo" class="food-info">
+                <!-- ข้อมูลอาหารจะแสดงที่นี่ -->
+            </div>
+            <div class="question-section">
+                <div class="question-text">คุณต้องการบันทึกการกินลงระบบไหม?</div>
+                <div class="action-buttons">
+                    <button class="btn btn-yes" onclick="saveToLog()">
+                        ✅ ใช่
+                    </button>
+                    <button class="btn btn-no" onclick="goHome()">
+                        ❌ ไม่บันทึก
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- หน้าสำเร็จ -->
+        <div id="successScreen" class="hidden">
+            <div class="success-message">
+                <div class="success-icon">🎉</div>
+                <h2>บันทึกสำเร็จ!</h2>
+                <p>ข้อมูลการกินของคุณถูกบันทึกแล้ว</p>
+                <button class="btn" onclick="goHome()" style="margin-top: 20px;">
+                    🏠 กลับหน้าแรก
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div id="loadingScreen" class="hidden">
+            <div class="loading">
+                <div style="font-size: 48px; margin-bottom: 15px;">⏳</div>
+                <p>กำลังประมวลผล...</p>
+            </div>
+        </div>
+
+        <!-- Error Message -->
+        <div id="errorMessage" class="error-message hidden">
+            <p id="errorText"></p>
+        </div>
+    </div>
+
+    <script>
+        // Supabase Configuration
+        const SUPABASE_URL = 'https://lvtdqeerzxpznnayccmb.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2dGRxZWVyenhwem5uYXljY21iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM0MTAxMjksImV4cCI6MjA2ODk4NjEyOX0.Uai-3_YSJpsYmSSTbHtrSNBoCG5f8WxoUcqyvcV3yUM';
+        let supabase = null;
+
+        // Global variables
+        let currentUserId = null;
+        let currentFoodData = null;
+        let capturedImageFile = null;
+        let isSupabaseConnected = false;
+        let isLiffConnected = false;
+
+        // Initialize Supabase (if credentials are provided)
+        function initializeSupabase() {
+            try {
+                if (SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY') {
+                    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                    isSupabaseConnected = true;
+                    console.log('Supabase connected successfully');
+                } else {
+                    console.log('Supabase not configured - using demo mode');
+                }
+            } catch (error) {
+                console.error('Supabase initialization failed:', error);
+                isSupabaseConnected = false;
+            }
+            updateConnectionStatus();
+        }
+
+        // Update connection status display
+        function updateConnectionStatus() {
+            const statusDiv = document.getElementById('connectionStatus');
+            let statusText = '';
+            
+            if (isLiffConnected && isSupabaseConnected) {
+                statusText = '✅ เชื่อมต่อ LINE และ Supabase สำเร็จ';
+            } else if (isLiffConnected && !isSupabaseConnected) {
+                statusText = '⚠️ เชื่อมต่อ LINE สำเร็จ | Supabase: โหมดทดสอบ';
+            } else if (!isLiffConnected && isSupabaseConnected) {
+                statusText = '⚠️ LINE: โหมดทดสอบ | เชื่อมต่อ Supabase สำเร็จ';
+            } else {
+                statusText = '🔧 โหมดทดสอบ (ไม่เชื่อมต่อ LINE/Supabase)';
+            }
+            
+            statusDiv.textContent = statusText;
+        }
+
+        // Initialize LIFF
+        async function initializeLiff() {
+            try {
+                // Check if LIFF is available and configured
+                if (typeof liff === 'undefined') {
+                    console.log('LIFF not available - using demo mode');
+                    currentUserId = 'demo_user_' + Date.now();
+                    updateConnectionStatus();
+                    return;
+                }
+
+                await liff.init({ liffId: "2007859046-doqQg8qv" });
+                
+                if (!liff.isLoggedIn()) {
+                    liff.login();
+                    return;
+                }
+
+                const profile = await liff.getProfile();
+                currentUserId = profile.userId;
+                isLiffConnected = true;
+                console.log("LINE user ID:", currentUserId);
+                
+            } catch (error) {
+                console.error('LIFF initialization failed:', error);
+                // Use demo mode if LIFF fails
+                currentUserId = 'demo_user_' + Date.now();
+                console.log('Using demo mode with user ID:', currentUserId);
+            }
+            
+            updateConnectionStatus();
+        }
+
+        // Screen navigation functions
+        function showScreen(screenId) {
+            const screens = ['homeScreen', 'cameraScreen', 'confirmScreen', 'resultScreen', 'successScreen', 'loadingScreen'];
+            screens.forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(screenId).classList.remove('hidden');
+            hideError();
+        }
+
+        function goHome() {
+            showScreen('homeScreen');
+            resetCamera();
+        }
+
+        function openCamera() {
+            showScreen('cameraScreen');
+        }
+
+        // Camera functions
+        function handleImageCapture(event) {
+            const file = event.target.files[0];
+            if (file) {
+                capturedImageFile = file;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const confirmImage = document.getElementById('confirmImage');
+                    confirmImage.src = e.target.result;
+                    showScreen('confirmScreen');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function retakePhoto() {
+            resetCamera();
+            showScreen('cameraScreen');
+        }
+
+        function confirmAndSubmit() {
+            if (!capturedImageFile) {
+                showError('ไม่พบรูปที่จะส่ง');
+                return;
+            }
+            submitImage();
+        }
+
+        function resetCamera() {
+            document.getElementById('cameraInput').value = '';
+            document.getElementById('galleryInput').value = '';
+            capturedImageFile = null;
+        }
+
+        // Submit image and process
+        async function submitImage() {
+            if (!capturedImageFile) {
+                showError('กรุณาเลือกรูปก่อน');
+                return;
+            }
+
+            showScreen('loadingScreen');
+
+            try {
+                const timestamp = Date.now();
+                const userIdShort = currentUserId.substring(0, 8);
+                const fileName = `food_${timestamp}_${userIdShort}.jpg`;
+                
+                if (isSupabaseConnected && supabase) {
+                    console.log('Starting image upload to Supabase...');
+                    console.log('File name:', fileName);
+                    console.log('File size:', capturedImageFile.size);
+                    console.log('File type:', capturedImageFile.type);
+                    
+                    // Check available buckets first
+                    try {
+                        const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+                        console.log('Available buckets:', buckets);
+                        
+                        if (bucketError) {
+                            console.error('Cannot list buckets:', bucketError);
+                            throw new Error('ไม่สามารถเข้าถึง Supabase Storage ได้ กรุณาตรวจสอบ API Key');
+                        }
+                        
+                        const bucketExists = buckets && buckets.some(bucket => bucket.name === 'food_pics');
+                        
+                        if (!bucketExists) {
+                            console.error('❌ Bucket "food_pics" not found');
+                            console.log('📋 Available buckets:', buckets?.map(b => b.name) || 'None');
+                            
+                            // Show detailed error with instructions
+                            const bucketNames = buckets?.map(b => b.name).join(', ') || 'ไม่มี';
+                            throw new Error(`❌ ไม่พบ Storage Bucket "food_pics"
+                            
+📋 Buckets ที่มีอยู่: ${bucketNames}
+
+🔧 วิธีแก้ไข:
+1. เข้า Supabase Dashboard
+2. ไป Storage > Create new bucket
+3. ตั้งชื่อ: food_pics
+4. เปิด Public bucket
+5. Save แล้วลองใหม่
+
+หรือเปลี่ยนชื่อ bucket ในโค้ดให้ตรงกับที่มีอยู่`);
+                        }
+                        
+                        console.log('✅ Bucket "food_pics" found, proceeding with upload...');
+                        
+                    } catch (bucketErr) {
+                        console.error('Storage access error:', bucketErr);
+                        if (bucketErr.message.includes('❌')) {
+                            throw bucketErr; // Re-throw our custom error
+                        }
+                        throw new Error('ไม่สามารถเข้าถึง Supabase Storage ได้ กรุณาตรวจสอบการตั้งค่า');
+                    }
+                    
+                    // Try upload with multiple methods
+                    let uploadData, uploadError;
+                    
+                    // Method 1: Standard upload
+                    console.log('Attempting upload...');
+                    const result = await supabase.storage
+                        .from('food_pics')
+                        .upload(fileName, capturedImageFile, {
+                            cacheControl: '3600',
+                            upsert: true
+                        });
+                    
+                    uploadData = result.data;
+                    uploadError = result.error;
+
+                    if (uploadError) {
+                        console.error('Upload failed:', uploadError);
+                        
+                        // Provide specific error messages
+                        let errorMessage = 'อัปโหลดรูปไม่สำเร็จ';
+                        
+                        if (uploadError.message?.includes('Bucket not found')) {
+                            errorMessage = `❌ ไม่พบ Storage Bucket "food_pics"
+                            
+🔧 กรุณาสร้าง bucket ใน Supabase Dashboard:
+1. ไป Storage > Create new bucket  
+2. ชื่อ: food_pics
+3. เปิด Public bucket
+4. Save แล้วลองใหม่`;
+                        } else if (uploadError.statusCode === 400) {
+                            errorMessage = '❌ ไฟล์รูปไม่ถูกต้อง กรุณาเลือกไฟล์รูปภาพ (JPEG, PNG)';
+                        } else if (uploadError.statusCode === 403) {
+                            errorMessage = `❌ ไม่มีสิทธิ์อัปโหลดรูป
+                            
+🔧 กรุณาตรวจสอบ:
+1. RLS Policy ใน Supabase
+2. API Key ถูกต้อง
+3. Bucket เป็น Public`;
+                        } else if (uploadError.statusCode === 413) {
+                            errorMessage = '❌ ไฟล์รูปใหญ่เกินไป (เกิน 5MB) กรุณาเลือกรูปที่เล็กกว่า';
+                        } else if (uploadError.message) {
+                            errorMessage = `❌ อัปโหลดไม่สำเร็จ: ${uploadError.message}`;
+                        }
+                        
+                        throw new Error(errorMessage);
+                    }
+
+                    console.log('✅ Upload successful:', uploadData);
+
+                    // Get public URL
+                    const { data: urlData } = supabase.storage
+                        .from('food_pics')
+                        .getPublicUrl(fileName);
+
+                    console.log('📷 Public URL:', urlData.publicUrl);
+
+                    // Save image info to database (graceful failure)
+                    try {
+                        const imageRecord = {
+                            line_userid: currentUserId,
+                            image_url: urlData.publicUrl,
+                            file_name: fileName,
+                            file_size: capturedImageFile.size,
+                            mime_type: capturedImageFile.type,
+                            created_at: new Date().toISOString()
+                        };
+
+                        console.log('💾 Saving to database:', imageRecord);
+
+                        const { data: dbData, error: dbError } = await supabase
+                            .from('food_pics')
+                            .insert([imageRecord])
+                            .select();
+
+                        if (dbError) {
+                            console.error('⚠️ Database error:', dbError);
+                            console.log('Image uploaded successfully but database save failed. Continuing...');
+                        } else {
+                            console.log('✅ Database save successful:', dbData);
+                        }
+                    } catch (dbErr) {
+                        console.error('⚠️ Database operation failed:', dbErr);
+                        console.log('Image uploaded successfully but database save failed. Continuing...');
+                    }
+                    
+                } else {
+                    // Demo mode - simulate upload
+                    console.log('🔧 Demo mode: Simulating image upload for file:', fileName);
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+
+                // Simulate food recognition
+                await simulateFoodRecognition();
+                
+                showScreen('resultScreen');
+                displayFoodInfo();
+
+            } catch (error) {
+                console.error('❌ Error submitting image:', error);
+                showError(error.message || 'เกิดข้อผิดพลาดในการประมวลผลรูป');
+                showScreen('confirmScreen');
+            }
+        }
+
+        // Simulate food recognition and get data from database
+        async function simulateFoodRecognition() {
+            try {
+                // In real implementation, you would use AI to recognize the food
+                // For demo, we'll get a random food from the database
+                const { data: foods, error } = await supabase
+                    .from('meals_database')
+                    .select('*')
+                    .limit(1);
+
+                if (error) throw error;
+
+                if (foods && foods.length > 0) {
+                    currentFoodData = foods[0];
+                } else {
+                    // Fallback sample data
+                    currentFoodData = {
+                        food_name: 'ข้าวผัดกุ้ง',
+                        calories: 450,
+                        protein: 18,
+                        carbs: 65,
+                        fat: 12,
+                        tip: 'อาหารจานนี้มีแคลอรีปานกลาง เหมาะสำหรับมื้อหลัก ควรเพิ่มผักเพื่อให้ได้สารอาหารครบถ้วน'
+                    };
+                }
+            } catch (error) {
+                console.error('Error getting food data:', error);
+                // Use fallback data
+                currentFoodData = {
+                    food_name: 'อาหารที่ไม่ระบุ',
+                    calories: 300,
+                    protein: 15,
+                    carbs: 40,
+                    fat: 10,
+                    tip: 'ไม่สามารถระบุอาหารได้ กรุณาลองถ่ายรูปใหม่หรือระบุด้วยตนเอง'
+                };
+            }
+        }
+
+        // Display food information
+        function displayFoodInfo() {
+            if (!currentFoodData) return;
+
+            const foodInfoDiv = document.getElementById('foodInfo');
+            foodInfoDiv.innerHTML = `
+                <div class="food-name">${currentFoodData.food_name}</div>
+                <div class="nutrition-grid">
+                    <div class="nutrition-item">
+                        <div class="nutrition-label">แคลอรี</div>
+                        <div class="nutrition-value">${currentFoodData.calories} kcal</div>
+                    </div>
+                    <div class="nutrition-item">
+                        <div class="nutrition-label">โปรตีน</div>
+                        <div class="nutrition-value">${currentFoodData.protein} g</div>
+                    </div>
+                    <div class="nutrition-item">
+                        <div class="nutrition-label">คาร์บ</div>
+                        <div class="nutrition-value">${currentFoodData.carbs} g</div>
+                    </div>
+                    <div class="nutrition-item">
+                        <div class="nutrition-label">ไขมัน</div>
+                        <div class="nutrition-value">${currentFoodData.fat} g</div>
+                    </div>
+                </div>
+                <div class="tip-section">
+                    <div class="tip-label">💡 คำแนะนำ</div>
+                    <div class="tip-text">${currentFoodData.tip}</div>
+                </div>
+            `;
+        }
+
+        // Save to food log
+        async function saveToLog() {
+            if (!currentFoodData || !currentUserId) {
+                showError('ไม่สามารถบันทึกข้อมูลได้');
+                return;
+            }
+
+            showScreen('loadingScreen');
+
+            try {
+                const logData = {
+                    line_userid: currentUserId,
+                    date: new Date().toISOString().split('T')[0],
+                    food_name: currentFoodData.food_name,
+                    calories: currentFoodData.calories,
+                    protein_g: currentFoodData.protein,
+                    fat_g: currentFoodData.fat,
+                    carbs_g: currentFoodData.carbs,
+                    created_at: new Date().toISOString()
+                };
+
+                if (isSupabaseConnected && supabase) {
+                    // Save to Supabase
+                    const { data, error } = await supabase
+                        .from('food_logs')
+                        .insert([logData]);
+
+                    if (error) throw error;
+                    console.log('Data saved to Supabase successfully');
+                } else {
+                    // Demo mode - simulate save
+                    console.log('Demo mode: Simulating data save:', logData);
+                    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate save delay
+                }
+
+                showScreen('successScreen');
+
+            } catch (error) {
+                console.error('Error saving to log:', error);
+                showError('ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่');
+                showScreen('resultScreen');
+            }
+        }
+
+        // Error handling
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
+            errorText.textContent = message;
+            errorDiv.classList.remove('hidden');
+            
+            setTimeout(() => {
+                hideError();
+            }, 5000);
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').classList.add('hidden');
+        }
+
+        // Initialize app when page loads
+        window.addEventListener('load', () => {
+            initializeSupabase();
+            initializeLiff();
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9759013ef6ebee25',t:'MTc1NjI3MDgyMi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
