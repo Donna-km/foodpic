@@ -1,0 +1,1639 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Calorie Tracker</title>
+    <link rel="stylesheet" href="https://cdn-uicons.flaticon.com/uicons-thin-rounded/css/uicons-thin-rounded.css">
+    <link rel="stylesheet" href="https://cdn-uicons.flaticon.com/uicons-regular-rounded/css/uicons-regular-rounded.css">
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #ffffff;
+            min-height: 100vh;
+            padding: 16px;
+            color: #2c3e50;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 380px;
+            margin: 0 auto;
+            background-color: #e9e2d0;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .container.no-frame {
+            background-color: transparent;
+            border-radius: 0;
+            padding: 0;
+            box-shadow: none;
+            border: none;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .header h1 {
+            color: #cc1e0f;
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #cc1e0f;
+            color: white;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            background: #a01810;
+            box-shadow: 0 4px 12px rgba(204, 30, 15, 0.3);
+        }
+
+        .btn-success {
+            background: #cc1e0f;
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-1px);
+            background: #a01810;
+            box-shadow: 0 4px 12px rgba(204, 30, 15, 0.3);
+        }
+
+        .btn-danger {
+            background: #ffffff;
+            color: #cc1e0f;
+            border: 1px solid #cc1e0f;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-1px);
+            background: #e9e2d0;
+        }
+
+        .btn-secondary {
+            background: #ffffff;
+            color: #cc1e0f;
+            border: 1px solid #cc1e0f;
+        }
+
+        .btn-secondary:hover {
+            background: #e9e2d0;
+            transform: translateY(-1px);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .preview-container {
+            text-align: center;
+            margin: 24px 0;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 280px;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            margin-bottom: 16px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .spinner {
+            border: 3px solid #e9e2d0;
+            border-top: 3px solid #cc1e0f;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        .loading p {
+            color: #cc1e0f;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #ffffff;
+            color: #cc1e0f;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            border: 1px solid #cc1e0f;
+            font-size: 14px;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .food-image-container {
+            position: relative;
+            margin: 0;
+            border-radius: 0;
+            overflow: hidden;
+        }
+
+        .result-food-image {
+            width: 100%;
+            height: 100vh;
+            object-fit: cover;
+            display: block;
+        }
+
+        .dish-calories-card {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.45);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .dish-name {
+            color: #cc1e0f;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        .calories-display {
+            background: #cc1e0f;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .tip-text {
+            font-style: italic;
+            font-size: 11px;
+            color: #cc1e0f;
+            line-height: 1.4;
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 8px;
+        }
+
+        .calories-icon {
+            font-size: 14px;
+        }
+
+        .calories-text {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .nutrition-summary {
+            position: absolute;
+            bottom: 120px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .nutrient-circle {
+            background: rgba(255, 255, 255, 0.95);
+            color: #cc1e0f;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s ease;
+            backdrop-filter: blur(20px);
+        }
+
+        .nutrient-circle:hover {
+            transform: translateY(-1px);
+        }
+
+        .nutrient-icon {
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            margin-bottom: 3px;
+        }
+
+        .nutrient-value {
+            font-size: 10px;
+            font-weight: 700;
+            color: #cc1e0f;
+            margin-bottom: 1px;
+        }
+
+        .nutrient-label {
+            font-size: 7px;
+            color: #cc1e0f;
+            font-weight: 500;
+        }
+
+
+
+        .question-section {
+            text-align: center;
+            margin: 20px 0;
+            padding: 0 20px;
+        }
+
+        .question-text {
+            font-size: 13px;
+            margin-bottom: 16px;
+            color: #cc1e0f;
+            font-weight: 500;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .button-group .btn {
+            flex: 1;
+            margin-bottom: 0;
+            padding: 12px 16px;
+            font-size: 14px;
+        }
+    
+/* ====== Result Page New Style ====== */
+.calorie-bubble {
+  position: absolute;
+  top: 20px; left: 20px;
+  background: #cc1e0f;
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 14px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.macro-bubbles {
+  position: absolute;
+  right: 20px;
+  top: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.macro-bubble {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  flex-direction: column;
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+/* ====== Updated Fun Message Style ====== */
+.fun-message {
+  position: absolute;
+  bottom: 20px; left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255,255,255,0.95);
+  padding: 16px 20px;
+  border-radius: 14px;
+  font-size: 14px;
+  color: #374151;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  text-align: center;
+  width: 90%;              /* ⬅ ใช้ width แทน max-width */
+  line-height: 1.2;        /* ⬅ ลด line-height ให้เตี้ยลง */
+}
+.fun-message strong {
+  color: #cc1e0f;
+  display: block;
+  margin-bottom: 2px;
+  font-size: 15px;
+}
+
+/* ====== Updated Save/Skip Buttons ====== */
+.button-group .btn {
+  flex: 1;
+  padding: 12px 16px;
+  font-size: 14px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #374151;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.button-group .btn:hover {
+  border-color: #cc1e0f;
+  background: #cc1e0f;
+  color: #fff;
+}
+        .mode-toggle {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin: 20px 0 28px;
+}
+
+.mode-btn {
+  font-size: 15px;
+  font-weight: 500;
+  border: 1.5px solid #cc1e0f;
+  padding: 12px 20px;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  background-color: #fff;
+  color: #cc1e0f;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.mode-btn.active {
+  background-color: #cc1e0f;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(204,30,15,0.3);
+}
+
+.mode-btn:hover {
+  transform: translateY(-1px);
+}
+/* === เพิ่มมิติ โทนขาวแดง modern === */
+
+/* กล่องหลัก */
+.container {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  border: 1px solid rgba(255,255,255,0.5);
+  transition: all 0.3s ease;
+}
+
+.container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+}
+
+/* ปุ่มพื้นฐาน */
+.btn {
+  border-radius: 14px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  transition: all 0.25s ease;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+}
+
+/* ปุ่มแดงหลัก */
+.btn-primary, .btn-success {
+  background: linear-gradient(180deg, #e63b2e 0%, #cc1e0f 100%);
+  color: #fff;
+  border: none;
+  box-shadow: 0 4px 12px rgba(204,30,15,0.3);
+}
+.btn-primary:hover, .btn-success:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(204,30,15,0.4);
+}
+
+/* ปุ่มขาวขอบแดง */
+.btn-secondary, .btn-danger {
+  background: #fff;
+  color: #cc1e0f;
+  border: 1.5px solid #cc1e0f;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+.btn-secondary:hover, .btn-danger:hover {
+  background: #fff5f4;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(204,30,15,0.25);
+}
+
+/* พื้นหลังทั้งหน้า */
+body {
+  background: linear-gradient(to bottom, #fafafa 0%, #f2f2f2 100%);
+}
+
+/* ส่วนหัว */
+.header h1 {
+  color: #cc1e0f;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* เพิ่มมุมมนให้รูปตัวอย่าง */
+.preview-image {
+  border-radius: 18px;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+}
+
+/* เพิ่มความนุ่มให้ toast */
+.toast {
+  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid rgba(204,30,15,0.5);
+}
+
+/* ปรับสีและฟอนต์รวมให้ดู modern */
+body, button, h1, p {
+  font-family: 'Inter', 'Prompt', sans-serif;
+}
+</style>
+
+<style>
+/* ====== Edit Modal (Popup) ====== */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+  display: none; align-items: center; justify-content: center; z-index: 9999; }
+.modal-backdrop.show { display: flex; }
+.modal { width: 92%; max-width: 420px; background: #fff; border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25); overflow: hidden; border: 1px solid #f3f4f6; }
+.modal-header { padding: 14px 18px; background: #e9e2d0; color: #cc1e0f; font-weight: 700;
+  display: flex; align-items: center; justify-content: space-between; }
+.modal-body { padding: 16px 18px; }
+.modal-footer { padding: 14px 18px; background: #fafafa; display: flex; gap: 10px; justify-content: flex-end; }
+.modal label { color: #cc1e0f; font-weight: 600; font-size: 14px; }
+.modal .input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #cc1e0f; margin: 6px 0 12px; }
+.modal .note { font-size: 12px; color: #6b7280; margin-top: -8px; margin-bottom: 8px; }
+.btn-outline { background:#fff; color:#cc1e0f; border:1px solid #cc1e0f; }
+.btn-primary-red { background:#cc1e0f; color:#fff; border:1px solid #cc1e0f; }
+.modal-close { background: transparent; border: 0; font-size: 20px; color: #cc1e0f; cursor: pointer; }
+</style>
+
+
+</head>
+<body>
+  <!-- E-CAL BODY: hidden input for body capture (does not affect food flow) -->
+  <input type="file" id="cameraInputBody" class="file-input" accept="image/*" capture="environment" onchange="previewBodyImage(event)" style="display:none;">
+
+    <div class="container">
+        
+        <!-- หน้าถ่ายรูป (หน้าแรก) -->
+<div id="cameraPage" style="background:#FFECD0; border-radius:20px; padding:32px 24px; text-align:center; box-shadow:0 6px 20px rgba(0,0,0,0.05);">
+  <div class="header">
+    <i class="fi fi-tr-camera-viewfinder" style="font-size:64px; color:#FF3974; margin-bottom:10px;"></i>
+    <h2 style="color:#FF3974; font-weight:700; font-size:20px;">Smart Scan</h2>
+  </div>
+
+  <div style="display:flex; flex-direction:column; gap:16px; margin-top:24px;">
+    <button id="btnBody"
+      style="background:#FF3974; color:white; font-size:16px; font-weight:600; padding:14px 0; border:none; border-radius:40px; cursor:pointer; box-shadow:0 4px 10px rgba(255,57,116,0.25); transition:transform 0.2s;"
+      onclick="setMode('body')">
+      Body Scan
+    </button>
+
+    <button id="btnFood"
+      style="background:#FF3974; color:white; font-size:16px; font-weight:600; padding:14px 0; border:none; border-radius:40px; cursor:pointer; box-shadow:0 4px 10px rgba(255,57,116,0.25); transition:transform 0.2s;"
+      onclick="setMode('food')">
+      Food Scan
+    </button>
+      <!-- ✅ ปุ่ม Progress (สไตล์เหมือนเดิมทุกอย่าง) -->
+  <button id="btnProgress"
+    style="background:#FF3974; color:white; font-size:16px; font-weight:600; padding:14px 0; border:none; border-radius:40px; cursor:pointer; box-shadow:0 4px 10px rgba(255,57,116,0.25); transition:transform 0.2s;"
+    onclick="window.location.href='https://liff.line.me/2007859046-7NZV6xZG'">
+    Progress
+  </button>
+  </div>
+
+  <!-- ✅ ย้ายส่วนเลือกไฟล์และ preview เข้ามาไว้ภายใน cameraPage -->
+  <input type="file" id="cameraInput" class="file-input" accept="image/*" capture="environment" onchange="previewImage(event)">
+  <input type="file" id="galleryInput" class="file-input" accept="image/*" onchange="previewImage(event)">
+
+  <div id="previewContainer" class="preview-container hidden" style="margin-top:24px;">
+    <img id="previewImage" class="preview-image" alt="Preview">
+    <button class="btn btn-success" style="background:#FF3974; color:white; font-weight:600;" onclick="submitPhoto()">
+      ✨ Analyze Food
+    </button>
+    <button class="btn btn-secondary" style="color:#FF3974; border:1px solid #FF3974;" onclick="goHome()">
+      ← Cancel
+    </button>
+  </div>
+</div>
+
+        <!-- ===== E-CAL FOOD: Loading (with Scan Animation) ===== -->
+<div id="loadingPage" class="hidden" style="text-align:center; padding:40px 20px;">
+
+  <div class="scan-area" id="scanAreaFood" style="max-width:280px;margin:0 auto 16px;position:relative;">
+    <!-- 🔹 ภาพจากผู้ใช้จะถูกใส่เข้ามาทาง JS -->
+    <img id="scanImageFood"
+         src="https://via.placeholder.com/280x280?text=Analyzing+Food..."
+         alt="กำลังวิเคราะห์อาหาร..."
+         style="width:100%;border-radius:12px;object-fit:cover;">
+    <!-- 🔹 เส้นสแกน -->
+    <div class="scan-line"></div>
+  </div>
+
+  <p style="color:#cc1e0f;font-weight:600;">กำลังวิเคราะห์อาหารของคุณ...</p>
+
+  <style>
+    .scan-area {
+      position: relative;
+      overflow: hidden;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .scan-line {
+      position: absolute;
+      top: -100%;
+      left: 0;
+      width: 100%;
+      height: 6px;
+      background: linear-gradient(
+        to bottom,
+        rgba(255,255,255,0) 0%,
+        rgba(204,30,15,0.55) 50%,
+        rgba(255,255,255,0) 100%
+      );
+      animation: scanMove 2.2s linear infinite;
+      border-radius: 4px;
+      box-shadow: 0 0 12px rgba(204,30,15,0.5);
+    }
+    @keyframes scanMove {
+      0% { top: -10%; }
+      50% { top: 100%; }
+      100% { top: -10%; }
+    }
+  </style>
+</div>
+
+
+        <!-- หน้าผลลัพธ์ -->
+        <div id="resultPage" class="hidden">
+            <!-- แสดงรูปอาหารที่ส่ง -->
+            <div class="food-image-container">
+                <img id="resultFoodImage" class="result-food-image" alt="อาหารที่วิเคราะห์">
+                <div id="resultContent"></div>
+            </div>
+        </div>
+
+        <!-- หน้าบันทึกสำเร็จ -->
+        <div id="successPage" class="hidden">
+            <div class="header">
+                <h1><i class="fi fi-tr-camera-viewfinder" style="margin-right:8px;color:#cc1e0f;"></i> Saved Successfully</h1>
+                <p style="color: #cc1e0f; font-size: 14px; margin-top: 8px;">Your food data has been recorded</p>
+            </div>
+            <button class="btn btn-primary" onclick="goHome()">
+                🏠 Back to Home
+            </button>
+        </div>
+    
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <script>
+        let currentUser = null;
+        let analysisResult = null;
+        let selectedImage = null;
+        // ✅ โหลด LINE ID จาก storage ถ้ามีอยู่แล้ว
+const savedLineId = localStorage.getItem('line_user_id') || sessionStorage.getItem('line_user_id');
+if (savedLineId) {
+    currentUser = { userId: savedLineId };
+    console.log('🔁 Loaded stored LINE ID:', savedLineId);
+}
+
+        // Initialize LIFF
+        async function initializeLIFF() {
+            // Check if we have a real LIFF ID configured
+            const liffId = "2007859046-doqQg8qv"; // Replace with your actual LIFF ID
+            
+            if (liffId === "YOUR_LIFF_ID") {
+                // No real LIFF ID configured - use demo mode
+                console.log("Running in demo mode - no LIFF ID configured");
+                currentUser = {
+                    userId: "demo_user_" + Date.now(),
+                    displayName: "Demo User"
+                };
+                showToast("Running in demo mode", "success");
+                return;
+            }
+            
+            try {
+                await liff.init({ liffId: liffId });
+                
+                if (!liff.isLoggedIn()) {
+                    liff.login();
+                    return;
+                }
+
+                const profile = await liff.getProfile();
+                currentUser = {
+                    userId: profile.userId,
+                    displayName: profile.displayName
+                };
+// ✅ เพิ่มตรงนี้
+if (profile?.userId) {
+    localStorage.setItem('line_user_id', profile.userId);
+    sessionStorage.setItem('line_user_id', profile.userId);
+}
+// ✅ จบตรงนี้
+                console.log("LINE user logged in:", currentUser);
+                showToast("LINE login successful!", "success");
+            } catch (error) {
+                console.error("LIFF initialization failed:", error);
+                // Fallback to demo mode
+                currentUser = {
+                    userId: "demo_user_" + Date.now(),
+                    displayName: "Demo User"
+                };
+                showToast("Using demo mode", "success");
+            }
+        }
+
+        // Initialize Supabase (Replace with your actual Supabase credentials)
+        const supabaseUrl = 'https://lvtdqeerzxpznnayccmb.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2dGRxZWVyenhwem5uYXljY21iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM0MTAxMjksImV4cCI6MjA2ODk4NjEyOX0.Uai-3_YSJpsYmSSTbHtrSNBoCG5f8WxoUcqyvcV3yUM';
+        let supabase;
+
+        try {
+            supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        } catch (error) {
+            console.log("Supabase not configured - using demo mode");
+        }
+
+        // Page navigation functions
+        function showPage(pageId) {
+            const pages = ['cameraPage', 'loadingPage', 'resultPage', 'successPage'];
+            pages.forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(pageId).classList.remove('hidden');
+        }
+
+
+
+        // ✅ ปรับให้กลับหน้าแรกได้จริงโดยไม่ค้างหน้า loading
+function goHome() {
+  // ซ่อนทุกหน้า
+  ['successPage','resultPage','resultBodyPage','loadingPage','loadingBodyPage'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('hidden');
+  });
+
+  // แสดงหน้าแรก
+  const camera = document.getElementById('cameraPage');
+  if (camera) camera.classList.remove('hidden');
+
+  // reset ค่า
+  analysisResult = null;
+  selectedImage = null;
+  const preview = document.getElementById('previewContainer');
+  if (preview) preview.classList.add('hidden');
+  const input = document.getElementById('cameraInput');
+  if (input) input.value = '';
+
+  showToast('🏠 กลับสู่หน้าแรกแล้ว');
+}
+
+
+        function openCamera() {
+            console.log('openCamera called');
+            showToast('Opening camera...', 'success');
+            
+            // Use setTimeout to ensure the toast shows before opening camera
+            setTimeout(() => {
+                const cameraInput = document.getElementById('cameraInput');
+                cameraInput.value = '';
+                
+                // Create a new click event
+                const event = new MouseEvent('click', {
+                    view: window,
+                    bubbles: true,
+                    cancelable: true
+                });
+                
+                cameraInput.dispatchEvent(event);
+            }, 100);
+        }
+
+        function openGallery() {
+            console.log('openGallery called');
+            showToast('Opening gallery...', 'success');
+            
+            // Use setTimeout to ensure the toast shows before opening gallery
+            setTimeout(() => {
+                const galleryInput = document.getElementById('galleryInput');
+                galleryInput.value = '';
+                
+                // Create a new click event
+                const event = new MouseEvent('click', {
+                    view: window,
+                    bubbles: true,
+                    cancelable: true
+                });
+                
+                galleryInput.dispatchEvent(event);
+            }, 100);
+        }
+
+
+
+        function previewImage(event) {
+  const file = event.target.files[0];
+  if (file) {
+    selectedImage = file;
+    // ✅ เก็บภาพไว้ใช้ในหน้า Loading
+    window.__ecalFoodImage = URL.createObjectURL(file);
+
+    showToast('Image selected successfully!', 'success');
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      document.getElementById('previewImage').src = e.target.result;
+      document.getElementById('previewContainer').classList.remove('hidden');
+    };
+    reader.readAsDataURL(file);
+  } else {
+    showToast('No image selected', 'error');
+  }
+}
+
+        window.showFoodLoading = function() {
+  const cam = document.getElementById('cameraPage');
+  const lb  = document.getElementById('loadingPage');
+  if (cam) cam.classList.add('hidden');
+  if (lb)  lb.classList.remove('hidden');
+
+  // 🖼️ ใส่ภาพจริงของอาหารที่ผู้ใช้อัปโหลด
+  const img = document.getElementById('scanImageFood');
+  const userImage = window.selectedImage || window.__ecalFoodImage || null;
+
+  if (img) {
+    if (userImage instanceof File) {
+      img.src = URL.createObjectURL(userImage);
+    } else if (typeof userImage === 'string') {
+      img.src = userImage;
+    } else {
+      img.src = "https://via.placeholder.com/280x280?text=Analyzing+Food...";
+    }
+  }
+};
+
+
+        async function submitPhoto() {
+            if (!selectedImage) {
+                showToast('กรุณาเลือกรูปภาพก่อน', 'error');
+                return;
+            }
+
+            showFoodLoading();
+
+            try {
+                const formData = new FormData();
+                formData.append('image', selectedImage);
+
+                
+                // ✅ attach LINE user id so n8n can read it
+                if (currentUser && currentUser.userId) {
+                    formData.append('line_user_id', currentUser.userId);
+                     // ✅ เพิ่มฟิลด์ว่างไว้เสมอ
+                    formData.append('dish', '');
+                    formData.append('amount', '');
+                    formData.append('note', '');
+                }
+                
+                  
+const response = await fetch('https://primary-production-49d9.up.railway.app/webhook/ecal-image', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const data = await response.json();
+                console.log('Webhook response:', data);
+                
+                // Handle different response formats
+                if (Array.isArray(data) && data.length > 0) {
+                    analysisResult = data[0];
+                } else if (data.output) {
+                    analysisResult = data;
+                } else {
+                    // If response format is different, create proper structure
+                    analysisResult = {
+                        output: data,
+                        date: new Date().toISOString().split('T')[0]
+                    };
+                }
+                
+                displayResult(analysisResult);
+                showPage('resultPage');
+
+            } catch (error) {
+                console.error('Error analyzing image:', error);
+                // Show demo result for testing
+                analysisResult = {
+                    output: {
+                        dish: "ขนมปังโทสต์ไข่ลาวากับโยเกิร์ตถั่วและผลไม้",
+                        calories: 480,
+                        protein: 22,
+                        fat: 20,
+                        carbs: 50,
+                        tip_th: "อย่ากินตอนหิวมาก เดี๋ยวลาวารั่วไหลเลอะเทอะ! 😆🔥🍳🥑🍓"
+                    },
+                    date: new Date().toISOString().split('T')[0]
+                };
+                displayResult(analysisResult);
+                showPage('resultPage');
+                showToast('ใช้ข้อมูลตัวอย่างสำหรับการทดสอบ', 'info');
+            }
+        }
+
+        function displayResult(result) {
+            const output = result.output;
+            
+            // แสดงรูปอาหารที่ส่ง
+            const resultImage = document.getElementById('resultFoodImage');
+            const previewImage = document.getElementById('previewImage');
+            if (previewImage && previewImage.src) {
+                resultImage.src = previewImage.src;
+            }
+            
+            // Remove container frame for fullscreen
+            document.querySelector('.container').classList.add('no-frame');
+            
+            const resultHTML = `
+        <!-- Calorie Bubble -->
+        <div class="calorie-bubble">${output.calories} Cal</div>
+
+        <!-- Macro Bubbles -->
+        <div class="macro-bubbles">
+            <div class="macro-bubble">${output.protein} g<br>Protein</div>
+            <div class="macro-bubble">${output.fat} g<br>Fat</div>
+            <div class="macro-bubble">${output.carbs} g<br>Carbs</div>
+        </div>
+
+        <!-- Fun Message + Dish Name -->
+        <div class="fun-message">
+            <strong>${output.dish}</strong><br>
+            ${output.tip_th}
+        </div>
+    `;
+    document.getElementById('resultContent').innerHTML = resultHTML;
+            
+            // Add save/skip buttons outside the image
+            const saveButtonsHTML = `
+                <div class="question-section">
+                    <p class="question-text">Save this meal to your log?</p>
+                    <div class="button-group">
+                        <button class="btn btn-success" onclick="saveToDatabase()">
+                            ✅ Save
+                        </button>
+                        <button class="btn btn-danger" onclick="goHome()">
+                            ❌ Skip
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Insert save buttons after the image container
+            const resultPage = document.getElementById('resultPage');
+            const existingSaveSection = resultPage.querySelector('.question-section');
+            if (existingSaveSection) {
+                existingSaveSection.remove();
+            }
+            resultPage.insertAdjacentHTML('beforeend', saveButtonsHTML);
+        }
+
+        async function saveToDatabase() {
+    if (!analysisResult || !currentUser) {
+        showToast('ไม่สามารถบันทึกข้อมูลได้', 'error');
+        return;
+    }
+
+    try {
+        // ✅ ดึงค่าที่แก้จาก popup (ถ้ามี)
+        const editedDish = document.getElementById('editDish')?.value?.trim();
+        const editedAmount = parseInt(document.getElementById('editAmount')?.value) || null;
+        const editedNote = document.getElementById('editNote')?.value?.trim();
+
+        // ✅ ถ้ามีค่าใหม่ ให้ update analysisResult.output
+        if (analysisResult?.output) {
+            if (editedDish) analysisResult.output.dish = editedDish;
+            if (editedAmount && analysisResult.output.calories) {
+
+                // ⬇️⬇️⬇️ ✅ แปลง string → number ก่อนคำนวณ
+                const baseCal = parseFloat(String(analysisResult.output.calories).replace(/[^0-9.]/g, '')) || 0;
+                const basePro = parseFloat(String(analysisResult.output.protein).replace(/[^0-9.]/g, '')) || 0;
+                const baseFat = parseFloat(String(analysisResult.output.fat).replace(/[^0-9.]/g, '')) || 0;
+                const baseCarb = parseFloat(String(analysisResult.output.carbs).replace(/[^0-9.]/g, '')) || 0;
+                // ⬆️⬆️⬆️
+
+                const ratio = editedAmount / 300;
+                analysisResult.output.calories = Math.round(baseCal * ratio);
+                analysisResult.output.protein = Math.round(basePro * ratio);
+                analysisResult.output.fat = Math.round(baseFat * ratio);
+                analysisResult.output.carbs = Math.round(baseCarb * ratio);
+            }
+            if (editedNote) analysisResult.output.note = editedNote;
+        }
+
+        const foodLog = {
+            line_userid: currentUser.userId,
+            date: analysisResult.date,
+            food_name: analysisResult.output.dish,
+            calories: analysisResult.output.calories,
+            protein_g: analysisResult.output.protein,
+            fat_g: analysisResult.output.fat,
+            carbs_g: analysisResult.output.carbs,
+            created_at: new Date().toISOString()
+        };
+
+        if (supabase) {
+            const { data, error } = await supabase
+                .from('food_logs')
+                .insert([foodLog]);
+
+            if (error) throw error;
+        }
+
+        console.log('Food log saved:', foodLog);
+        showPage('successPage');
+        showToast('บันทึกข้อมูลสำเร็จ!', 'success');
+
+            } catch (error) {
+                console.error('Error saving to database:', error);
+                // Still show success for demo purposes
+                showPage('successPage');
+                showToast('บันทึกข้อมูลสำเร็จ! (Demo Mode)', 'success');
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type === 'error' ? 'toast-error' : 'toast-success'}`;
+            toast.classList.add('show');
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Initialize app when page loads
+        window.addEventListener('load', () => {
+            initializeLIFF();
+        });
+    </script>
+
+    <style>
+        .toast-error {
+            background-color: #e9e2d0 !important;
+            color: #cc1e0f !important;
+            border: 1px solid #cc1e0f !important;
+        }
+
+        .toast-success {
+            background-color: #ffffff !important;
+            color: #cc1e0f !important;
+            border: 1px solid #cc1e0f !important;
+        }
+   /* ====== Body Result Layout ====== */
+.body-image-scroll {
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  display: flex;
+  gap: 16px;
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+}
+
+.body-image-wrapper {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+}
+
+.body-image-item {
+  flex: 0 0 85%;
+  scroll-snap-align: start;
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+}
+
+.body-result-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+/* Overlay จุดวิเคราะห์ */
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.body-result-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  color: #2c3e50;
+}
+
+.body-result-card h2 {
+  color: #cc1e0f;
+  margin-bottom: 10px;
+}
+
+.tip-text {
+  font-style: italic;
+  color: #cc1e0f;
+  margin-top: 10px;
+}
+        /* ===== Overlay Animation ===== */
+@keyframes fadeInLabel {
+  0% { opacity: 0; transform: scale(0.8); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.overlay span {
+  opacity: 0;
+  animation: fadeInLabel 0.5s ease forwards;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+  border: none;
+  border-radius: 8px;
+  padding: 4px 8px;
+  color: #cc1e0f;
+  font-weight: 600;
+  font-size: 13px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+    </style>
+    
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97ae9b7f141e26c9',t:'MTc1NzE2ODQzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+<!-- ====== Edit Popup ====== -->
+<div id="editModal" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-header">
+      <span>แก้ไขข้อมูลอาหาร</span>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <label>🍽️ ชื่ออาหาร</label>
+      <input id="editDish" class="input" type="text" placeholder="เช่น ข้าวกะเพราไก่ไข่ดาว">
+      <label>⚖️ ปริมาณ (กรัม)</label>
+      <input id="editAmount" class="input" type="number" placeholder="300">
+      <div class="note">หากไม่ใส่ ระบบจะคำนวณที่ 300 g</div>
+      <label>🧂 ส่วนผสมพิเศษ / หมายเหตุ</label>
+      <textarea id="editNote" class="input" rows="3" placeholder="เช่น ไม่ใส่พริก, เพิ่มไข่ดาว"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-primary-red" onclick="reAnalyze()">🔁 Re-Analyze</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// === Re-Analyze Modal helpers ===
+function openEditModal(){ var m=document.getElementById('editModal'); if(m) m.classList.add('show'); }
+function closeEditModal(){ var m=document.getElementById('editModal'); if(m) m.classList.remove('show'); }
+
+// Redefine displayResult to include Edit/Save/Skip and fill popup defaults
+(function(){
+  const _oldDisplay = window.displayResult;
+  window.displayResult = function(result){
+    try{
+      const output = (result && result.output) ? result.output : result;
+      // Keep existing image behavior
+      var resultImage = document.getElementById('resultFoodImage');
+      var previewImage = document.getElementById('previewImage');
+      if (resultImage && previewImage && previewImage.src) resultImage.src = previewImage.src;
+
+      // Ensure container full
+      var cont = document.querySelector('.container'); if(cont) cont.classList.add('no-frame');
+
+      var resultContent = document.getElementById('resultContent');
+      if (resultContent){
+        resultContent.innerHTML = `
+          <div class="calorie-bubble">${output.calories} Cal</div>
+          <div class="macro-bubbles">
+            <div class="macro-bubble">${output.protein} g<br>Protein</div>
+            <div class="macro-bubble">${output.fat} g<br>Fat</div>
+            <div class="macro-bubble">${output.carbs} g<br>Carbs</div>
+          </div>
+          <div class="fun-message">
+            <strong>${output.dish||''}</strong><br>${output.tip_th||''}
+          </div>`;
+      }
+
+      // Insert buttons row with Edit + Save + Skip
+      var resultPage = document.getElementById('resultPage');
+      if (resultPage){
+        var existing = resultPage.querySelector('.question-section');
+        if (existing) existing.remove();
+        resultPage.insertAdjacentHTML('beforeend', `
+          <div class="question-section">
+            <p class="question-text">Save this meal to your log?</p>
+            <div class="button-group">
+              <button class="btn btn-secondary" onclick="openEditModal()">✏️ Edit</button>
+              <button class="btn btn-success" onclick="saveToDatabase()">✅ Save</button>
+              <button class="btn btn-danger" onclick="goHome()">❌ Skip</button>
+            </div>
+          </div>
+        `);
+      }
+
+      // Prefill modal fields
+      var d=document.getElementById('editDish'), a=document.getElementById('editAmount'), n=document.getElementById('editNote');
+      if (d) d.value = output?.dish || '';
+      if (a) a.value = 300;
+      if (n) n.value = '';
+
+    }catch(e){
+      try{ if (typeof _oldDisplay === 'function') _oldDisplay(result); }catch(_){}
+      console.error('displayResult override error', e);
+    }
+  };
+})();
+
+// === Re-Analyze: send edited fields to webhook and redraw result ===
+async function reAnalyze(){
+  try{
+    const name = (document.getElementById('editDish')?.value || '').trim();
+    const amount = parseInt(document.getElementById('editAmount')?.value) || 300;
+    const note = (document.getElementById('editNote')?.value || '').trim();
+
+    closeEditModal();
+    if (typeof showPage === 'function') showPage('loadingPage');
+
+    const formData = new FormData();
+    formData.append('dish', name);
+    formData.append('amount', amount);
+    formData.append('note', note);
+
+    // ✅ แนบ line_user_id เสมอ (กันหลุด)
+    const lineId =
+      window.currentUser?.userId ||
+      localStorage.getItem('line_user_id') ||
+      sessionStorage.getItem('line_user_id');
+    if (lineId) {
+      formData.append('line_user_id', lineId);
+    } else {
+      console.warn('⚠️ ไม่มี line_user_id ถูกแนบไป');
+    }
+
+    // attach image (prefer selectedImage; fallback to result image src -> blob)
+    if (window.selectedImage) {
+      formData.append('image', window.selectedImage);
+    } else {
+      const src =
+        document.getElementById('resultFoodImage')?.src ||
+        document.getElementById('previewImage')?.src;
+      if (src) {
+        try {
+          const blob = await fetch(src).then((r) => r.blob());
+          formData.append('image', blob, 'food.jpg');
+        } catch (e) {
+          console.warn('⚠️ โหลดภาพไม่สำเร็จ', e);
+        }
+      }
+    }
+
+    // ✅ ส่งข้อมูลไป webhook
+    const res = await fetch(
+      'https://primary-production-49d9.up.railway.app/webhook/ecal-image',
+      { method: 'POST', body: formData }
+    );
+
+    const data = await res.json().catch(() => ({}));
+    console.log('📤 ส่งข้อมูลไป webhook:', [...formData.entries()]);
+
+    // normalize
+    window.analysisResult = Array.isArray(data)
+      ? data[0]
+      : data?.output
+      ? data
+      : { output: data };
+    if (!window.analysisResult.date)
+      window.analysisResult.date = new Date().toISOString().split('T')[0];
+
+      // ✅ เพิ่มบรรทัดนี้
+analysisResult = window.analysisResult;
+
+    if (typeof displayResult === 'function')
+      displayResult(window.analysisResult);
+    if (typeof showPage === 'function') showPage('resultPage');
+  } catch (err) {
+    console.error('❌ reAnalyze error:', err);
+    if (typeof showToast === 'function')
+      showToast('Re-Analyze failed', 'error');
+    if (typeof showPage === 'function') showPage('resultPage');
+  }
+}
+    let mode = 'food'; // โหมดเริ่มต้น
+
+function setMode(newMode) {
+  mode = newMode;
+
+  // reset class
+  document.getElementById('btnFood').classList.remove('active');
+  document.getElementById('btnBody').classList.remove('active');
+
+  if (mode === 'food') {
+    document.getElementById('btnFood').classList.add('active');
+    showToast('🍱 โหมดวิเคราะห์อาหาร');
+  } else {
+    document.getElementById('btnBody').classList.add('active');
+    showToast('💪 โหมดวิเคราะห์รูปร่าง');
+  }
+}
+
+</script>
+
+
+  <!-- ===== E-CAL BODY: Loading & Result (with Real Scan Animation) ===== -->
+<div id="loadingBodyPage" class="hidden" style="text-align:center; padding:40px 20px;">
+  
+  <div class="scan-area" id="scanAreaBody" style="max-width:280px;margin:0 auto 16px;position:relative;">
+    <!-- 🔹 ภาพจากผู้ใช้จะถูกใส่เข้ามาทาง JS -->
+    <img id="scanImageBody"
+         src="https://via.placeholder.com/280x380?text=Analyzing+Body..."
+         alt="กำลังวิเคราะห์..."
+         style="width:100%;border-radius:12px;object-fit:cover;">
+    <!-- 🔹 เส้นสแกน -->
+    <div class="scan-line"></div>
+  </div>
+
+  <p style="color:#cc1e0f;font-weight:600;">กำลังวิเคราะห์รูปร่างของคุณ...</p>
+
+  <style>
+    /* ===== Scan Animation Style ===== */
+    .scan-area {
+      position: relative;
+      overflow: hidden;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .scan-line {
+      position: absolute;
+      top: -100%;
+      left: 0;
+      width: 100%;
+      height: 6px;
+      background: linear-gradient(
+        to bottom,
+        rgba(255,255,255,0) 0%,
+        rgba(204,30,15,0.55) 50%, /* 🔴 ใช้สีแดงแบรนด์ */
+        rgba(255,255,255,0) 100%
+      );
+      animation: scanMove 2.2s linear infinite;
+      border-radius: 4px;
+      box-shadow: 0 0 12px rgba(204,30,15,0.5);
+    }
+
+    @keyframes scanMove {
+      0% { top: -10%; }
+      50% { top: 100%; }
+      100% { top: -10%; }
+    }
+  </style>
+</div>
+
+ <!-- ✅ หน้าผลลัพธ์วิเคราะห์รูปร่าง -->
+<div id="resultBodyPage" class="hidden">
+  <div class="header">
+    <h1 style="color:#cc1e0f;">ผลการวิเคราะห์รูปร่าง</h1>
+  </div>
+
+  <!-- ✅ พื้นที่ภาพ (แนวนอนเลื่อนได้) -->
+  <div class="body-image-scroll">
+    <div class="body-image-wrapper">
+      <div class="body-image-item">
+        <img id="bodyImageFront" src="" alt="ภาพด้านหน้า" class="body-result-img">
+        <div id="overlayFront" class="overlay"></div>
+      </div>
+      <div class="body-image-item">
+        <img id="bodyImageSide" src="" alt="ภาพด้านข้าง" class="body-result-img">
+        <div id="overlaySide" class="overlay"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✅ การ์ดสรุปผล -->
+  <div class="body-result-card">
+    <h2>Body Score: <span id="bodyScore">–</span>/10</h2>
+    <p>ไขมันในร่างกาย: <strong id="bodyFat">–</strong>%</p>
+    <p>มวลกล้ามเนื้อ: <strong id="muscleMass">–</strong>%</p>
+    <p>จุดที่ควรปรับปรุง: <span id="bodyFocus">–</span></p>
+    <p id="bodyTip" class="tip-text">โค้ชแนะนำ: –</p>
+  </div>
+
+  <!-- ✅ ปุ่ม -->
+  <div class="button-group" style="margin-top:20px;">
+    <button class="btn btn-primary" onclick="goHome()">🏠 กลับหน้าแรก</button>
+  </div>
+</div>
+
+  <!-- ===== /E-CAL BODY ===== -->
+
+
+<!-- ===== E-CAL BODY SCRIPTS (non-destructive) ===== -->
+<script>
+(function(){
+  window.__ecalBody = window.__ecalBody || { images:{front:null,side:null}, step:'front' };
+
+  function toast(msg){
+    try { if (window.showToast) { showToast(msg); return; } } catch(e){}
+    console.log(msg);
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    var btn = document.getElementById('btnBody') || Array.from(document.querySelectorAll('button')).find(b=>/วิเคราะห์รูปร่าง/.test(b.textContent||''));
+    if (btn && !btn.__ecalBound){
+      btn.__ecalBound = true;
+      btn.addEventListener('click', function(e){
+        // เริ่มโฟลว์รูปร่างทันที โดยไม่แตะปุ่มของอาหาร
+        startBodyCapture();
+      });
+    }
+  });
+
+  window.startBodyCapture = function(){
+  __ecalBody.images = {front:null, side:null};
+  __ecalBody.step = 'front';
+  
+  toast('📸 เลือกหรือถ่ายรูป 1–2 ภาพ (ด้านหน้าและ/หรือด้านข้าง)');
+  
+  var input = document.getElementById('cameraInputBody');
+  if (!input) { 
+    alert('ไม่พบ input สำหรับโหมดรูปร่าง'); 
+    return; 
+  }
+  
+  input.value = '';
+  input.multiple = true; // ✅ เลือกได้หลายรูป
+  input.click();
+};
+
+window.previewBodyImage = function(ev){
+  var files = ev && ev.target && ev.target.files;
+  if (!files || files.length === 0) return;
+
+  // ✅ รีเซ็ตค่าเริ่มต้น
+  __ecalBody.images = {front:null, side:null};
+  __ecalBody.step = 'done';
+
+  // ✅ โหลดรูปทั้งหมด (สูงสุด 2 รูป)
+  var readers = [];
+  for (let i = 0; i < Math.min(files.length, 2); i++) {
+    readers.push(new Promise(resolve => {
+      const rd = new FileReader();
+      rd.onload = e => resolve(e.target.result);
+      rd.readAsDataURL(files[i]);
+    }));
+  }
+
+  Promise.all(readers).then(results => {
+    __ecalBody.images.front = results[0] || null;
+    __ecalBody.images.side  = results[1] || null;
+    toast('✅ ได้รูปครบแล้ว กำลังวิเคราะห์...');
+    analyzeBodyImages();
+  });
+};
+
+window.showBodyLoading = function() {
+  const cam = document.getElementById('cameraPage');
+  const lb  = document.getElementById('loadingBodyPage');
+  if (cam) cam.classList.add('hidden');
+  if (lb)  lb.classList.remove('hidden');
+
+  // 🖼️ ใช้ภาพจริงของผู้ใช้ที่อัปโหลดล่าสุด
+  const img = document.getElementById('scanImageBody');
+  const userImage = window.__ecalBody?.images?.front || window.__ecalBody?.images?.side;
+
+  if (img) {
+    if (userImage) {
+      img.src = userImage; // ✅ ใส่ภาพจริงลงในหน้า Loading
+    } else {
+      // ถ้าไม่มีภาพให้ใช้ placeholder ปกติ
+      img.src = "https://via.placeholder.com/280x380?text=Analyzing+Body...";
+    }
+  }
+};
+
+
+window.analyzeBodyImages = async function(){
+  try{
+    showBodyLoading();
+    var lineUserId = window.lineUserId 
+      || (window.liff && liff.getContext && liff.getContext()?.userId) 
+      || localStorage.getItem('line_user_id') 
+      || null;
+
+    var payload = {
+      mode: 'body',
+      line_user_id: lineUserId,
+      images: [__ecalBody.images.front, __ecalBody.images.side].filter(Boolean)
+    };
+
+    var res = await fetch('https://primary-production-49d9.up.railway.app/webhook-test/body', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    var data = await res.json().catch(()=>({}));
+    showBodyResult(data || {});
+  }catch(err){
+    console.error(err);
+    alert('❌ วิเคราะห์รูปร่างไม่สำเร็จ');
+    var lb  = document.getElementById('loadingBodyPage');
+    var cam = document.getElementById('cameraPage');
+    if (lb)  lb.classList.add('hidden');
+    if (cam) cam.classList.remove('hidden');
+  }
+};
+
+  window.showBodyResult = function(result){
+  var lb = document.getElementById('loadingBodyPage');
+  var rp = document.getElementById('resultBodyPage');
+  if (lb) lb.classList.add('hidden');
+  if (rp) rp.classList.remove('hidden');
+
+  var imgF = document.getElementById('bodyImageFront');
+  var imgS = document.getElementById('bodyImageSide');
+  if (imgF) imgF.src = __ecalBody.images.front || '';
+  if (imgS) imgS.src = __ecalBody.images.side || '';
+
+  var setText = (id, val)=>{ var el=document.getElementById(id); if(el) el.textContent = (val ?? '–'); };
+  setText('bodyScore',   result.body_score);
+  setText('bodyFat',     result.body_fat);
+  setText('muscleMass',  result.muscle_mass);
+  setText('bodyFocus',   result.focus || '');
+  setText('bodyTip',     result.tip_th ? ('โค้ชแนะนำ: ' + result.tip_th) : '');
+
+  var of = document.getElementById('overlayFront');
+  var os = document.getElementById('overlaySide');
+  if (of) of.innerHTML='';
+  if (os) os.innerHTML='';
+
+  // ✅ รองรับกรณีที่ labels เป็น JSON string จาก Supabase
+  var labels = [];
+  try {
+    labels = Array.isArray(result.labels)
+      ? result.labels
+      : JSON.parse(result.labels || '[]');
+  } catch (e) {
+    console.warn('❌ Parse labels failed', e);
+  }
+var mid = Math.ceil(labels.length / 2);
+
+// ✅ ถ้ามีแค่รูปเดียว (ไม่มี side)
+if (!os || !__ecalBody.images.side) {
+  labels.forEach((l, i) => addOverlay(of, l, i));
+} else {
+  // ✅ ถ้ามีสองรูป (front + side)
+  labels.slice(0, mid).forEach((l, i) => addOverlay(of, l, i));
+  labels.slice(mid).forEach((l, i) => addOverlay(os, l, i + mid));
+}
+};
+
+  
+function addOverlay(container, l, index = 0) {
+  if (!container || !l) return;
+
+  var d = document.createElement('div');
+  d.textContent = (l.part ? (l.part + ': ') : '') + (l.description || '');
+  d.style.position = 'absolute';
+  d.style.left = (Math.min(95, Math.max(5, Number(l.x || 50)))) + '%';
+  d.style.top = (Math.min(95, Math.max(5, Number(l.y || 50)))) + '%';
+  d.style.background = 'rgba(255,255,255,0.85)';
+  d.style.backdropFilter = 'blur(4px)';
+  d.style.color = '#cc1e0f';
+  d.style.fontSize = '12px';
+  d.style.padding = '4px 6px';
+  d.style.borderRadius = '6px';
+  d.style.boxShadow = '0 1px 3px rgba(0,0,0,0.12)';
+
+  // ✅ เอฟเฟกต์ Fade-in ทีละจุด
+  d.style.opacity = '0';
+  d.style.transform = 'scale(0.8)';
+  d.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+  setTimeout(() => {
+    d.style.opacity = '1';
+    d.style.transform = 'scale(1)';
+  }, index * 200); // โผล่ทีละอันห่างกัน 0.2 วิ
+
+  container.appendChild(d);
+}
+
+})();
+    // ✅ ให้ปุ่มอาหารเปิดกล้องหรือเลือกภาพได้ (ไม่ยุ่งกับรูปร่าง)
+document.addEventListener("DOMContentLoaded", () => {
+  const foodBtn = document.getElementById("btnFood");
+  const cameraInput = document.getElementById("cameraInput");
+
+  if (foodBtn && cameraInput) {
+    foodBtn.addEventListener("click", () => {
+      setMode("food");
+      setTimeout(() => {
+        showToast("📸 เลือกหรือถ่ายภาพอาหาร");
+        cameraInput.click();
+      }, 200);
+    });
+  }
+});
+
+
+</script>
+<!-- ===== /E-CAL BODY SCRIPTS ===== -->
+
+</body>
+</html>
